@@ -385,28 +385,34 @@
       }
 
       .cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 24px;
-        max-width: 900px;
+        position: relative;
+        max-width: 500px;
         width: 100%;
+        min-height: 350px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .card {
         background: white;
         border: 1px solid rgba(201, 114, 107, 0.15);
         border-radius: 2px;
-        padding: 36px 28px;
-        position: relative;
+        padding: 48px 36px;
+        position: absolute;
+        width: 100%;
+        display: none;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.5s ease;
         overflow: hidden;
-        transition:
-          transform 0.3s ease,
-          box-shadow 0.3s ease;
+        box-shadow: 0 10px 30px rgba(122, 45, 45, 0.05);
       }
 
-      .card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 50px rgba(122, 45, 45, 0.08);
+      .card.active {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .card::before {
@@ -769,7 +775,7 @@
     <section class="scene" id="scene2">
       <p class="section-label">Exhibit A The Evidence</p>
       <div class="cards-grid">
-        <div class="card">
+        <div class="card active" id="exhibit1">
           <span class="card-num">01</span>
           <p class="card-label">Exhibit A</p>
           <h3 class="card-title">She's Beautiful</h3>
@@ -779,7 +785,7 @@
             time after that.
           </p>
         </div>
-        <div class="card">
+        <div class="card" id="exhibit2">
           <span class="card-num">02</span>
           <p class="card-label">Exhibit B</p>
           <h3 class="card-title">She's Sweet</h3>
@@ -788,7 +794,7 @@
             notice kindness when it's real. Yours is very real.
           </p>
         </div>
-        <div class="card">
+        <div class="card" id="exhibit3">
           <span class="card-num">03</span>
           <p class="card-label">Exhibit C</p>
           <h3 class="card-title">She's Caring</h3>
@@ -798,7 +804,7 @@
             person you are.
           </p>
         </div>
-        <div class="card">
+        <div class="card" id="exhibit4">
           <span class="card-num">04</span>
           <p class="card-label">Exhibit D</p>
           <h3 class="card-title">She's Honest</h3>
@@ -810,17 +816,28 @@
       </div>
       <div class="divider"></div>
       <p
+        id="caseClosed"
         style="
           font-family: &quot;Cormorant Garamond&quot;, serif;
           font-style: italic;
           font-size: 20px;
           color: var(--soft);
           margin-top: 8px;
+          opacity: 0;
+          transition: opacity 0.5s ease;
         "
       >
         Case closed, your honour.
       </p>
-      <button class="nav-btn" onclick="nextScene('scene2', 'sceneMemories')">
+      <button class="nav-btn" id="nextExhibitBtn" onclick="nextExhibit()">
+        Next Exhibit
+      </button>
+      <button
+        class="nav-btn"
+        id="scene2Continue"
+        style="display: none"
+        onclick="nextScene('scene2', 'sceneMemories')"
+      >
         Continue
       </button>
     </section>
@@ -1003,27 +1020,41 @@
           bgmusic.pause();
           musicIcon.textContent = "♪";
           musicToggle.classList.remove("playing");
+          isPlaying = false;
         } else {
-          bgmusic.play().catch((e) => console.log("Audio play blocked"));
-          musicIcon.textContent = "♫";
-          musicToggle.classList.add("playing");
+          bgmusic
+            .play()
+            .then(() => {
+              musicIcon.textContent = "♫";
+              musicToggle.classList.add("playing");
+              isPlaying = true;
+            })
+            .catch((e) => console.log("Audio play blocked"));
         }
-        isPlaying = !isPlaying;
       }
 
       // Autoplay logic: Trigger music on first interaction
       function initAutoplay() {
-        const startMusic = () => {
+        const handleFirstInteraction = () => {
           if (!isPlaying) {
-            toggleMusic();
+            bgmusic
+              .play()
+              .then(() => {
+                musicIcon.textContent = "♫";
+                musicToggle.classList.add("playing");
+                isPlaying = true;
+              })
+              .catch((e) => console.log("Autoplay still blocked"));
           }
-          document.removeEventListener("click", startMusic);
-          document.removeEventListener("touchstart", startMusic);
-          document.removeEventListener("scroll", startMusic);
+          // Remove listeners after first interaction attempt
+          ["click", "touchstart", "keydown"].forEach((event) => {
+            document.removeEventListener(event, handleFirstInteraction);
+          });
         };
-        document.addEventListener("click", startMusic);
-        document.addEventListener("touchstart", startMusic);
-        document.addEventListener("scroll", startMusic);
+
+        ["click", "touchstart", "keydown"].forEach((event) => {
+          document.addEventListener(event, handleFirstInteraction);
+        });
       }
       initAutoplay();
 
@@ -1042,6 +1073,29 @@
             if (nextId === "scene4") revealAsk();
           }, 50);
         }, 800);
+      }
+
+      // ── EXHIBIT NAVIGATION
+      let currentExhibit = 1;
+      const totalExhibits = 4;
+      function nextExhibit() {
+        const current = document.getElementById(`exhibit${currentExhibit}`);
+        current.classList.remove("active");
+
+        setTimeout(() => {
+          current.style.display = "none";
+          currentExhibit++;
+
+          if (currentExhibit <= totalExhibits) {
+            const next = document.getElementById(`exhibit${currentExhibit}`);
+            next.style.display = "block";
+            setTimeout(() => next.classList.add("active"), 50);
+          } else {
+            document.getElementById("caseClosed").style.opacity = "1";
+            document.getElementById("nextExhibitBtn").style.display = "none";
+            document.getElementById("scene2Continue").style.display = "block";
+          }
+        }, 500);
       }
 
       // ── LETTER
